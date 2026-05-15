@@ -2,27 +2,18 @@ import { defineBackend } from "@aws-amplify/backend";
 import { data } from "./data/resource";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { auth } from "./auth/resource";
+import { askBedrockFunction } from "./functions/ask-bedrock/resource";
 
 const backend = defineBackend({
   auth,
   data,
+  askBedrockFunction,
 });
 
-const bedrockDataSource = backend.data.resources.graphqlApi.addHttpDataSource(
-  "bedrockDS",
-  "https://bedrock-runtime.us-east-1.amazonaws.com",
-  {
-    authorizationConfig: {
-      signingRegion: "us-east-1",
-      signingServiceName: "bedrock",
-    },
-  }
-);
-
-bedrockDataSource.grantPrincipal.addToPrincipalPolicy(
+backend.askBedrockFunction.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     resources: [
-      "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-4-sonnet-20240229-v1:0",
+      "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0",
     ],
     actions: ["bedrock:InvokeModel"],
     

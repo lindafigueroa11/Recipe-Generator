@@ -9,6 +9,7 @@ frontend:
         - if [ -d "node_modules" ]; then npm install --legacy-peer-deps --prefer-offline; else npm ci --legacy-peer-deps --prefer-offline; fi
     build:
       commands:
+        - npm run lint
         - npm run build
   artifacts:
     baseDirectory: dist

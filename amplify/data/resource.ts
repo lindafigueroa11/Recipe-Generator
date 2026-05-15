@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { askBedrockFunction } from "../functions/ask-bedrock/resource";
 
 const schema = a.schema({
   BedrockResponse: a.customType({
@@ -10,13 +11,8 @@ const schema = a.schema({
     .query()
     .arguments({ ingredients: a.string().array() })
     .returns(a.ref("BedrockResponse"))
-    .authorization((allow) => [allow.authenticated()])
-    .handler(
-      a.handler.custom({
-        entry: "./bedrock.js",
-        dataSource: "bedrockDS"
-      })
-    ),
+    .authorization((allow) => [allow.publicApiKey()])
+    .handler(a.handler.function(askBedrockFunction)),
 });
 
 export type Schema = ClientSchema<typeof schema>;
