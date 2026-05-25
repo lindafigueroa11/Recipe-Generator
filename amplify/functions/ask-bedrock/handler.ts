@@ -8,6 +8,16 @@ const INVALID_CHAR_REGEX = /[<>`$\\{}]/;
 
 const client = new BedrockRuntimeClient({ region: "us-east-1" });
 
+type StructuredRecipe = {
+  title: string;
+  time: string;
+  servings: string;
+  difficulty: string;
+  ingredients: string[];
+  steps: string[];
+  tip: string;
+};
+
 const normalizeIngredients = (ingredients: unknown): string[] => {
   if (!Array.isArray(ingredients)) {
     return [];
@@ -34,6 +44,52 @@ const validateIngredients = (ingredients: string[]): string | null => {
   return null;
 };
 
+const stripCodeFences = (value: string) =>
+  value
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+const parseStructuredRecipe = (rawText: string): StructuredRecipe | null => {
+  const normalized = stripCodeFences(rawText);
+
+  try {
+    const parsed = JSON.parse(normalized) as Partial<StructuredRecipe>;
+    const title = parsed.title?.toString().trim() ?? "";
+    const time = parsed.time?.toString().trim() ?? "";
+    const servings = parsed.servings?.toString().trim() ?? "";
+    const difficulty = parsed.difficulty?.toString().trim() ?? "";
+    const tip = parsed.tip?.toString().trim() ?? "";
+
+    const ingredients = Array.isArray(parsed.ingredients)
+      ? parsed.ingredients
+          .map((item) => (typeof item === "string" ? item.trim() : ""))
+          .filter(Boolean)
+      : [];
+    const steps = Array.isArray(parsed.steps)
+      ? parsed.steps
+          .map((item) => (typeof item === "string" ? item.trim() : ""))
+          .filter(Boolean)
+      : [];
+
+    if (!title || ingredients.length === 0 || steps.length === 0) {
+      return null;
+    }
+
+    return {
+      title,
+      time: time || "25 min",
+      servings: servings || "2 porciones",
+      difficulty: difficulty || "Facil",
+      ingredients,
+      steps,
+      tip: tip || "Agrega hierbas frescas al final para mayor aroma.",
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const handler: Schema["askBedrock"]["functionHandler"] = async (event) => {
   try {
     const ingredients = normalizeIngredients(event.arguments?.ingredients);
@@ -44,9 +100,11 @@ export const handler: Schema["askBedrock"]["functionHandler"] = async (event) =>
     }
 
     const prompt = [
-      "Genera una receta original en espanol usando estos ingredientes.",
+      "Eres un chef experto. Responde UNICAMENTE en JSON valido sin markdown ni texto extra.",
+      "Genera una receta en espanol con estos ingredientes.",
       `Ingredientes: ${ingredients.join(", ")}.`,
-      "Devuelve solo: titulo, lista de ingredientes y pasos numerados breves.",
+      'Usa exactamente este formato: {"title":"", "time":"", "servings":"", "difficulty":"", "ingredients":[""], "steps":[""], "tip":""}.',
+      "Incluye 5 pasos maximo, ingredientes practicos y consejo final breve.",
     ].join(" ");
 
     const command = new InvokeModelCommand({
@@ -63,7 +121,7 @@ export const handler: Schema["askBedrock"]["functionHandler"] = async (event) =>
         ],
         inferenceConfig: {
           max_new_tokens: 800,
-          temperature: 0.7,
+          temperature: 0.2,
           top_p: 0.9,
         },
       }),
@@ -95,7 +153,15 @@ export const handler: Schema["askBedrock"]["functionHandler"] = async (event) =>
       return { error: "Bedrock no devolvio texto para esta receta." };
     }
 
-    return { body: generatedText.trim() };
+    const recipe = parseStructuredRecipe(generatedText);
+    if (!recipe) {
+      return {
+        error: "No se pudo estructurar la respuesta de IA en una receta valida.",
+        body: generatedText.trim(),
+      };
+    }
+
+    return { recipe, body: generatedText.trim() };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "No se pudo generar la receta en este momento.";

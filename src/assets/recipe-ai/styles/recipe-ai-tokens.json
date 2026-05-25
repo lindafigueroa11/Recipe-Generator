@@ -1,0 +1,24 @@
+{
+  "colors": {
+    "bg": "#fff7ed",
+    "cream": "#fffbeb",
+    "orange": "#f97316",
+    "orangeDark": "#ea580c",
+    "brown": "#7c2d12",
+    "text": "#431407",
+    "muted": "#8a6652",
+    "success": "#22c55e"
+  },
+  "radius": {
+    "large": "28px",
+    "medium": "18px"
+  },
+  "shadow": {
+    "card": "0 24px 60px rgba(120, 53, 15, 0.12)",
+    "button": "0 14px 32px rgba(234, 88, 12, 0.28)"
+  },
+  "fonts": {
+    "display": "Playfair Display, Georgia, serif",
+    "body": "Inter, Manrope, system-ui, sans-serif"
+  }
+}

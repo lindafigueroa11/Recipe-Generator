@@ -8,7 +8,7 @@ import { globalIgnores } from 'eslint/config'
 export default tseslint.config([
   globalIgnores(['dist', '.amplify']),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
@@ -18,6 +18,14 @@ export default tseslint.config([
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+    },
+  },
+  {
+    files: ['api/**/*.ts', 'amplify/**/*.ts'],
+    extends: [js.configs.recommended, tseslint.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.node,
     },
   },
 ])

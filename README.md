@@ -1,69 +1,67 @@
-# React + TypeScript + Vite
+# Recipe AI (Vite + React)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Recipe AI Preview](docs/images/recipe-ai-preview.png)
 
-Currently, two official plugins are available:
+## Generacion de imagenes con Hugging Face (FLUX.1 Schnell)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Este proyecto usa Vite (frontend) y una funcion serverless en `api/` para no exponer el token.
 
-## Expanding the ESLint configuration
+Modelo integrado:
+- `black-forest-labs/FLUX.1-schnell`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Endpoint interno:
+- `POST /api/generate-recipe-image`
+- `POST /api/generate-recipe-image-diagnostic`
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Variables de entorno
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+1. Copia `.env.example` a `.env`.
+2. Define tu token:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+HF_TOKEN=mi_token_aqui
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Seguridad
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- El frontend nunca usa el token de Hugging Face.
+- El token se lee solo en el backend serverless (`process.env.HF_TOKEN`).
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Request del endpoint
+
+```json
+{
+  "recipeName": "Creamy chicken pasta",
+  "ingredients": ["pasta", "chicken", "tomato", "cream"]
+}
 ```
+
+### Respuesta esperada
+
+```json
+{
+  "imageUrl": "data:image/jpeg;base64,...",
+  "prompt": "Realistic food photography of ..."
+}
+```
+
+### Diagnostico rapido
+
+Endpoint:
+- `POST /api/generate-recipe-image-diagnostic`
+
+Responde claramente si:
+- Hugging Face devolvio imagen (`diagnostic: "image_ok"`)
+- devolvio JSON/texto de error (`diagnostic: "response_not_image"` o `upstream_error`)
+- falta token (`diagnostic: "token_missing"`)
+- el modelo requiere aceptar terminos (`diagnostic: "model_terms_required"`)
+- el proveedor no soporta el modelo (`diagnostic: "provider_not_supported"`)
+
+### Nota sobre Vite
+
+Como este proyecto no es Next.js, se usa una funcion serverless compatible con Vercel (`api/generate-recipe-image.ts`).
+
+Para desarrollo local del frontend + endpoint:
+- Usa `vercel dev` si quieres ejecutar ambos en local con el path `/api/...`.
+
+Si no usas Vercel, necesitas un backend propio o serverless equivalente (Netlify Functions, AWS Lambda, etc.) y luego apuntar el frontend a ese endpoint interno.
